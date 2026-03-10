@@ -92,7 +92,21 @@ assert_eq!(result.res, -1);
 |------|------|
 | HttpResponse | 响应结果结构体 |
 | ResponseData | 响应数据详情 |
-| DEFAULT_PROXY | 默认代理地址 socks5://127.0.0.1:10808 |
+| HTTP_PROXY | 环境变量，配置代理地址（可选） |
+
+### 代理配置
+
+代理通过环境变量 `HTTP_PROXY` 或 `http_proxy` 配置：
+
+```bash
+# 设置代理
+export HTTP_PROXY=socks5://127.0.0.1:10808
+
+# 或
+export http_proxy=http://proxy.example.com:8080
+```
+
+默认不使用代理，只有 `use_proxy=true` 且设置了环境变量时才启用。
 
 ### 方法签名
 

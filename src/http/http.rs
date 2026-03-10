@@ -39,8 +39,15 @@ pub struct ResponseData {
 pub struct HttpHelper;
 
 impl HttpHelper {
-    /// 默认代理地址
-    const DEFAULT_PROXY: &'static str = "socks5://127.0.0.1:10808";
+    /// 从环境变量获取代理地址
+    /// 
+    /// 读取顺序：HTTP_PROXY -> http_proxy
+    /// 默认返回 None（不使用代理）
+    fn get_proxy_from_env() -> Option<String> {
+        std::env::var("HTTP_PROXY")
+            .or_else(|_| std::env::var("http_proxy"))
+            .ok()
+    }
 
     /// 创建HTTP Agent
     fn create_agent(timeout_secs: u64, proxy: Option<&str>) -> Result<Agent, String> {
@@ -68,13 +75,13 @@ impl HttpHelper {
         max_retries: u32,
     ) -> HttpResponse {
         let final_proxy = if use_proxy {
-            Some(proxy.unwrap_or(Self::DEFAULT_PROXY))
+            proxy.map(|s| s.to_string()).or_else(|| Self::get_proxy_from_env())
         } else {
             None
         };
 
         for attempt in 0..=max_retries {
-            match Self::do_get(url, headers, params, final_proxy, timeout) {
+            match Self::do_get(url, headers, params, final_proxy.as_deref(), timeout) {
                 Ok(response) => return response,
                 Err(errmsg) => {
                     if attempt < max_retries {
@@ -174,13 +181,13 @@ impl HttpHelper {
         max_retries: u32,
     ) -> HttpResponse {
         let final_proxy = if use_proxy {
-            Some(proxy.unwrap_or(Self::DEFAULT_PROXY))
+            proxy.map(|s| s.to_string()).or_else(|| Self::get_proxy_from_env())
         } else {
             None
         };
 
         for attempt in 0..=max_retries {
-            match Self::do_post(url, data, json_data, headers, final_proxy, timeout) {
+            match Self::do_post(url, data, json_data, headers, final_proxy.as_deref(), timeout) {
                 Ok(response) => return response,
                 Err(errmsg) => {
                     if attempt < max_retries {
