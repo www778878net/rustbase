@@ -71,7 +71,7 @@ if lock.acquire() {
 
 ## 许可证
 
-MIT 许可证 - 详见 [LICENSE](./LICENSE)
+Apache License 2.0 - 详见 [LICENSE](./LICENSE)
 
 ## 仓库地址
 
