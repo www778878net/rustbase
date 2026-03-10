@@ -7,7 +7,7 @@ Rust 基础库，提供日志、HTTP、项目路径等通用组件。
 ## 功能模块
 
 - **MyLogger** - 结构化日志，支持多级别和文件输出
-- **HttpHelper** - HTTP 客户端工具，支持 JSON
+- **HttpLogger** - HTTP 客户端工具，支持 JSON
 - **ProjectPath** - 跨平台项目路径管理
 - **FrontMatter** - YAML Front Matter 解析和渲染
 - **TaskLock** - 基于文件的任务锁机制
@@ -22,7 +22,80 @@ Rust 基础库，提供日志、HTTP、项目路径等通用组件。
 base = { git = "https://github.com/www778878net/rustbase.git" }
 ```
 
-## 使用示例
+## MyLogger - 详细使用说明
+
+### 日志级别
+
+| 级别 | 值 | 说明 | 生产环境 | 开发环境 |
+|------|---|------|---------|---------|
+| `Detail` | 5 | 详细调试信息（AI 友好） | 不输出 | 仅文件 |
+| `Debug` | 10 | 调试信息 | 不输出 | 控制台+文件 |
+| `Info` | 20 | 一般信息 | 控制台+文件 | 控制台+文件 |
+| `Warn` | 30 | 警告信息 | 控制台+文件 | 控制台+文件 |
+| `Error` | 40 | 错误信息 | 控制台+文件 | 控制台+文件 |
+
+### 环境控制
+
+通过环境变量 `APP_ENV` 设置：
+- `production` - 仅 Info/Warn/Error 输出到控制台和文件
+- `development` - 所有级别（含 Detail）写入文件，Debug+ 输出到控制台
+- `test` - 与 development 相同
+
+```bash
+# 生产模式
+APP_ENV=production ./your_app
+
+# 开发模式（默认）
+APP_ENV=development ./your_app
+```
+
+### Detail 日志用于 AI 调试
+
+```rust
+use base::{MyLogger, get_logger};
+use std::sync::Arc;
+
+// 创建日志器，保留 3 天
+let logger = MyLogger::new("my_workflow", 3);
+
+// Detail 日志非常适合 AI 辅助调试
+// 生产环境不会输出，开发时帮助定位问题
+logger.detail("步骤1: 初始化数据库连接");
+logger.detail("步骤2: 从 /etc/app/config.yaml 加载配置");
+logger.detail("步骤3: 缓存中发现 42 条记录");
+logger.detail("步骤4: 处理批次大小 = 100");
+logger.error("数据库连接失败: Connection refused");
+
+// 生产环境: 只有 Error 显示
+// 开发环境: 所有日志写入 detail.log 供 AI 分析
+```
+
+### 单例模式与宏
+
+```rust
+use base::mylogger;
+use std::sync::Arc;
+
+struct MyCapability {
+    logger: Arc<MyLogger>,
+}
+
+impl MyCapability {
+    pub fn new() -> Self {
+        Self {
+            logger: mylogger!(),  // 自动获取 "MyCapability" 作为名称
+        }
+    }
+}
+```
+
+### 日志文件
+
+- `logs/project/project.log` - 全局日志（Info+）
+- `logs/project/detail.log` - 详细日志（Detail 级别，仅开发环境）
+- `logs/{name}/{name}.log` - 模块独立日志
+
+## 快速使用
 
 ```rust
 use base::{MyLogger, HttpHelper, ProjectPath, FrontMatter, TaskLock};
