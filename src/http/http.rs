@@ -145,15 +145,9 @@ impl HttpHelper {
         logger.detail(&format!("[GET] 响应 status={} body={}", status_code, response_preview));
 
         if status_code < 200 || status_code >= 300 {
-            let server_error = response_content.to_string();
-            let errmsg = if server_error.is_empty() {
-                format!("HTTP请求失败，状态码: {}", status_code)
-            } else {
-                format!("HTTP {} 错误: {}", status_code, server_error)
-            };
             return Ok(HttpResponse {
                 res: -1,
-                errmsg,
+                errmsg: response_content.to_string(),
                 data: Some(ResponseData {
                     status_code,
                     response: response_content,
