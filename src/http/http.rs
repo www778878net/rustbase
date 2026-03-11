@@ -246,27 +246,51 @@ impl HttpHelper {
             request
                 .set("Content-Type", "application/json")
                 .send_json(json)
-                .map_err(|e| {
-                    logger.error(&format!("[POST] 请求失败: {}: {}", url, e));
-                    format!("请求失败: {}: {}", url, e)
-                })?
         } else if let Some(form_data) = data {
             request
                 .set("Content-Type", "application/x-www-form-urlencoded")
                 .send_form(form_data)
-                .map_err(|e| {
-                    logger.error(&format!("[POST] 请求失败: {}: {}", url, e));
-                    format!("请求失败: {}: {}", url, e)
-                })?
         } else {
-            request.call().map_err(|e| {
-                logger.error(&format!("[POST] 请求失败: {}: {}", url, e));
-                format!("请求失败: {}: {}", url, e)
-            })?
+            request.call()
+        };
+
+        let response = match response {
+            Ok(r) => r,
+            Err(ureq::Error::Status(code, resp)) => {
+                let (body, _) = Self::read_response(resp).unwrap_or((Value::String(String::new()), "text".to_string()));
+                logger.error(&format!("[POST] HTTP错误: {} status={} body={}", url, code, body));
+                return Ok(HttpResponse {
+                    res: -1,
+                    errmsg: body.to_string(),
+                    data: Some(ResponseData {
+                        status_code: code as u16,
+                        response: body,
+                        kind: "json".to_string(),
+                        cookies: None,
+                    }),
+                });
+            }
+            Err(e) => {
+                let err_msg = e.to_string();
+                logger.error(&format!("[POST] 网络错误: {} error={}", url, err_msg));
+                return Ok(HttpResponse {
+                    res: -1,
+                    errmsg: err_msg.clone(),
+                    data: Some(ResponseData {
+                        status_code: 0,
+                        response: Value::String(err_msg),
+                        kind: "text".to_string(),
+                        cookies: None,
+                    }),
+                });
+            }
         };
 
         let status_code = response.status();
-        let (response_content, kind) = Self::read_response(response)?;
+        let (response_content, kind) = Self::read_response(response).map_err(|e| {
+            logger.error(&format!("[POST] 读取响应失败: {}: {}", url, e));
+            format!("读取响应失败: {}: {}", url, e)
+        })?;
         
         let response_preview = if response_content.to_string().chars().count() > 500 {
             format!("{}...(截断)", response_content.to_string().chars().take(500).collect::<String>())
