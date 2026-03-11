@@ -226,9 +226,17 @@ impl HttpHelper {
         timeout: u64,
     ) -> Result<HttpResponse, String> {
         let logger = get_logger("HTTP", 3);
-        logger.detail(&format!("[POST] {}", url));
+        logger.detail(&format!("[POST] URL: {}", url));
         if let Some(json) = json_data {
-            logger.detail(&format!("[POST] JSON: {}", json));
+            let json_str = json.to_string();
+            if json_str.chars().count() > 500 {
+                logger.detail(&format!("[POST] JSON: {}...(截断)", json_str.chars().take(500).collect::<String>()));
+            } else {
+                logger.detail(&format!("[POST] JSON: {}", json_str));
+            }
+        }
+        if let Some(form_data) = data {
+            logger.detail(&format!("[POST] FORM: {:?}", form_data));
         }
         
         let agent = Self::create_agent(timeout, proxy)?;
@@ -244,14 +252,14 @@ impl HttpHelper {
             request
                 .set("Content-Type", "application/json")
                 .send_json(json)
-                .map_err(|e| format!("请求失败: {}", e))?
+                .map_err(|e| format!("请求失败: {}: {}", url, e))?
         } else if let Some(form_data) = data {
             request
                 .set("Content-Type", "application/x-www-form-urlencoded")
                 .send_form(form_data)
-                .map_err(|e| format!("请求失败: {}", e))?
+                .map_err(|e| format!("请求失败: {}: {}", url, e))?
         } else {
-            request.call().map_err(|e| format!("请求失败: {}", e))?
+            request.call().map_err(|e| format!("请求失败: {}: {}", url, e))?
         };
 
         let status_code = response.status();
@@ -273,7 +281,11 @@ impl HttpHelper {
             };
             return Ok(HttpResponse {
                 res: -1,
+<<<<<<< HEAD
                 errmsg,
+=======
+                errmsg: format!("HTTP请求失败: {} status code {}", url, status_code),
+>>>>>>> fa4f4e0bc130cfa28a16a177132fc45fccd47b05
                 data: Some(ResponseData {
                     status_code,
                     response: response_content,
