@@ -281,11 +281,7 @@ impl HttpHelper {
             };
             return Ok(HttpResponse {
                 res: -1,
-<<<<<<< HEAD
                 errmsg,
-=======
-                errmsg: format!("HTTP请求失败: {} status code {}", url, status_code),
->>>>>>> fa4f4e0bc130cfa28a16a177132fc45fccd47b05
                 data: Some(ResponseData {
                     status_code,
                     response: response_content,
