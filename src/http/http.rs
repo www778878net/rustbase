@@ -246,14 +246,23 @@ impl HttpHelper {
             request
                 .set("Content-Type", "application/json")
                 .send_json(json)
-                .map_err(|e| format!("请求失败: {}: {}", url, e))?
+                .map_err(|e| {
+                    logger.error(&format!("[POST] 请求失败: {}: {}", url, e));
+                    format!("请求失败: {}: {}", url, e)
+                })?
         } else if let Some(form_data) = data {
             request
                 .set("Content-Type", "application/x-www-form-urlencoded")
                 .send_form(form_data)
-                .map_err(|e| format!("请求失败: {}: {}", url, e))?
+                .map_err(|e| {
+                    logger.error(&format!("[POST] 请求失败: {}: {}", url, e));
+                    format!("请求失败: {}: {}", url, e)
+                })?
         } else {
-            request.call().map_err(|e| format!("请求失败: {}: {}", url, e))?
+            request.call().map_err(|e| {
+                logger.error(&format!("[POST] 请求失败: {}: {}", url, e));
+                format!("请求失败: {}: {}", url, e)
+            })?
         };
 
         let status_code = response.status();
