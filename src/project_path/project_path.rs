@@ -150,8 +150,22 @@ impl ProjectPath {
     }
 
     /// 获取 Worker 名称
+    /// 从 tmp/lockid/worker.txt 读取，每个终端不同
     pub fn worker_name(&self) -> Option<String> {
-        self.read_text_config("worker.txt", "WORKER_NAME")
+        if let Ok(val) = std::env::var("WORKER_NAME") {
+            return Some(val);
+        }
+
+        let worker_path = self.join("tmp/lockid/worker.txt");
+        if worker_path.exists() {
+            if let Ok(content) = fs::read_to_string(&worker_path) {
+                let trimmed = content.trim().to_string();
+                if !trimmed.is_empty() {
+                    return Some(trimmed);
+                }
+            }
+        }
+        None
     }
 
     /// 加载 INI 配置文件
