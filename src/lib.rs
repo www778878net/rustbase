@@ -36,4 +36,4 @@ pub use upinfo::{UpInfo, UpInfoError, Response};
 pub use frontmatter::{FrontMatter, TaskInfo};
 
 // TaskLock
-pub use task_lock::TaskLock;
+pub use task_lock::{TaskLock, TaskTimer};

@@ -5,5 +5,7 @@
 //! - 旧实例：检测PID变了就自己退出
 
 mod task_lock;
+mod task_timer;
 
 pub use task_lock::TaskLock;
+pub use task_timer::TaskTimer;
