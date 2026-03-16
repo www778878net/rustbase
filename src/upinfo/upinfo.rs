@@ -12,6 +12,7 @@ static MASTER_INSTANCE: OnceLock<UpInfo> = OnceLock::new();
 
 /// UpInfo - API 请求上下文
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct UpInfo {
     // ============ 数据获取非必填字段 ============
     /// 起始位置
