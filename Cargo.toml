@@ -5,7 +5,7 @@ edition = "2021"
 
 [lib]
 name = "base"
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 
 [dependencies]
 chrono = "0.4"
