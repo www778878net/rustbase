@@ -1,4 +1,4 @@
-﻿﻿//! TaskTimer - 任务定时器
+//! TaskTimer - 任务定时器
 //!
 //! 用于控制任务的执行频率，记录定时任务的最后执行时间
 //! 文件位置: tmp/lockid/{name}.time
