@@ -3,7 +3,7 @@
 //! 提供项目根目录查找、默认路径生成、配置加载等能力
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::fs;
 
 /// 环境类型
@@ -168,17 +168,26 @@ impl ProjectPath {
         None
     }
 
-    /// 加载 INI 配置文件
+    /// 加载 INI 配置文件（默认路径）
     pub fn load_ini_config(&self) -> Result<HashMap<String, HashMap<String, String>>, String> {
         let config_path = self.env_config_file();
+        Self::load_ini_from_path(&config_path)
+    }
 
+    /// 从指定路径加载 INI 配置文件
+    pub fn load_ini_from_path(config_path: &Path) -> Result<HashMap<String, HashMap<String, String>>, String> {
         if !config_path.exists() {
             return Err(format!("配置文件不存在: {}", config_path.to_string_lossy()));
         }
 
-        let content = fs::read_to_string(&config_path)
+        let content = fs::read_to_string(config_path)
             .map_err(|e| format!("读取配置文件失败: {}", e))?;
 
+        Self::parse_ini_content(&content)
+    }
+
+    /// 从字符串解析 INI 内容
+    pub fn parse_ini_content(content: &str) -> Result<HashMap<String, HashMap<String, String>>, String> {
         let mut config: HashMap<String, HashMap<String, String>> = HashMap::new();
         let mut current_section = "default".to_string();
 

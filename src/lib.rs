@@ -27,7 +27,7 @@ pub use mylogger::{MyLogger, LogLevel, Environment, get_logger};
 pub use http::{HttpHelper, HttpResponse, ResponseData};
 
 // ProjectPath
-pub use project_path::ProjectPath;
+pub use project_path::{ProjectPath, load_ini_from_path, parse_ini_content};
 
 // UpInfo
 pub use upinfo::{UpInfo, UpInfoError, Response};
