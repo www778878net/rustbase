@@ -375,21 +375,26 @@ pub struct Response {
     pub res: i32,
     /// 错误信息
     pub errmsg: String,
-    /// JSON 格式数据
+    /// 返回类型
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub jsdata: Option<String>,
+    pub kind: Option<String>,
+    /// 实际数据
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub back: Option<String>,
+ 
     /// 二进制格式数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bytedata: Option<Vec<u8>>,
 }
 
 impl Response {
-    /// 成功响应 (jsdata)
+    /// 成功响应 (back)
     pub fn success_json<T: Serialize>(data: &T) -> Self {
         Self {
             res: 0,
             errmsg: String::new(),
-            jsdata: Some(serde_json::to_string(data).unwrap_or_default()),
+            kind: Some("json".to_string()),
+            back: Some(serde_json::to_string(data).unwrap_or_default()),
             bytedata: None,
         }
     }
@@ -399,7 +404,8 @@ impl Response {
         Self {
             res: 0,
             errmsg: String::new(),
-            jsdata: None,
+            kind: Some("bytes".to_string()),
+            back: None,
             bytedata: Some(data),
         }
     }
@@ -409,7 +415,8 @@ impl Response {
         Self {
             res: code,
             errmsg: msg.to_string(),
-            jsdata: None,
+            kind: None,
+            back: None,
             bytedata: None,
         }
     }
