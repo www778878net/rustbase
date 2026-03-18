@@ -200,13 +200,15 @@ impl ProjectPath {
 
             if line.starts_with('[') && line.ends_with(']') {
                 current_section = line[1..line.len()-1].trim().to_string();
+                // 移除可能的 \r 字符（Windows换行符）
+                current_section = current_section.replace('\r', "");
                 config.entry(current_section.clone()).or_insert_with(HashMap::new);
                 continue;
             }
 
             if let Some(pos) = line.find('=') {
-                let key = line[..pos].trim().to_string();
-                let value = line[pos + 1..].trim().to_string();
+                let key = line[..pos].trim().replace('\r', "").to_string();
+                let value = line[pos + 1..].trim().replace('\r', "").to_string();
                 config
                     .entry(current_section.clone())
                     .or_insert_with(HashMap::new)
