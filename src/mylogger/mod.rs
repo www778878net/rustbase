@@ -4,6 +4,6 @@
 //! - 全局日志：logs/project/project.log 和 logs/project/detail.log
 //! - 工作流日志：logs/{wfname}/{wfname}.log 或 logs/{myname}/{myname}.log
 
-mod mylogger;
+pub mod mylogger;
 
 pub use mylogger::{MyLogger, LogLevel, Environment, get_logger};
