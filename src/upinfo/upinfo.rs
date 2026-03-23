@@ -522,7 +522,7 @@ mod tests {
         let data = TestData { key: "value".to_string() };
         let resp = Response::success_json(&data);
         assert_eq!(resp.res, 0);
-        assert!(resp.jsdata.is_some());
+        assert!(resp.back.is_some());
     }
 
     #[test]
