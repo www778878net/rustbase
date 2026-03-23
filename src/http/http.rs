@@ -244,7 +244,7 @@ impl HttpHelper {
 
         let response = if let Some(json) = json_data {
             request
-                .set("Content-Type", "application/json")
+                .set("Content-Type", "application/json; charset=utf-8")
                 .send_json(json)
         } else if let Some(form_data) = data {
             request
