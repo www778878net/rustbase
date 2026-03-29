@@ -25,6 +25,8 @@ pub struct FrontMatter {
     #[serde(default)]
     pub menu: String,
     #[serde(default)]
+    pub target_path: String,
+    #[serde(default)]
     pub tasks: Vec<TaskInfo>,
     #[serde(default)]
     pub rollback_count: i32,
