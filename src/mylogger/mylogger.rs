@@ -269,7 +269,7 @@ impl MyLogger {
             .open(&workflow_log_path)
             .expect("Cannot open workflow log");
 
-        let env_str = std::env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
+        let env_str = std::env::var("APP_ENV").unwrap_or_else(|_| "production".to_string());
         let environment: Environment = env_str.parse().unwrap_or(Environment::Production);
 
         cleanup_workflow_logs(&workflow_log_dir, log_retention_days, log_name);
@@ -338,7 +338,7 @@ impl MyLogger {
 
     /// 从环境变量 APP_ENV 设置环境
     pub fn set_environment_from_env(&mut self) {
-        let env_str = std::env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
+        let env_str = std::env::var("APP_ENV").unwrap_or_else(|_| "production".to_string());
         let environment: Environment = env_str.parse().unwrap_or(Environment::Production);
         self.set_environment(environment);
     }
