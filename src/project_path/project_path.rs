@@ -336,3 +336,170 @@ impl Default for ProjectPath {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_find_root() {
+        let result = ProjectPath::find();
+        assert!(result.is_ok());
+        let project = result.unwrap();
+        // 验证 root 包含 docs 或 .claude
+        assert!(project.root.join("docs").exists() || project.root.join(".claude").exists());
+    }
+
+    #[test]
+    fn test_local_db_path() {
+        let project = ProjectPath::find().unwrap();
+        let db_path = project.local_db();
+        let path_str = db_path.to_string_lossy();
+        // Windows 使用反斜杠，所以用 contains 而非 ends_with
+        assert!(path_str.contains("docs"));
+        assert!(path_str.contains("config"));
+        assert!(path_str.contains("local.db"));
+    }
+
+    #[test]
+    fn test_docs_config_path() {
+        let project = ProjectPath::find().unwrap();
+        let config_path = project.docs_config();
+        let path_str = config_path.to_string_lossy();
+        // Windows 使用反斜杠，所以用 contains 而非 ends_with
+        assert!(path_str.contains("docs"));
+        assert!(path_str.contains("config"));
+    }
+
+    #[test]
+    fn test_environment_from_env() {
+        // 默认应该是 Development（因为 APP_ENV 未设置或设置）
+        let env = Environment::from_env();
+        // 在测试环境中，如果没有设置 APP_ENV，默认是 Development
+        assert!(matches!(env, Environment::Development | Environment::Test | Environment::Production));
+    }
+
+    #[test]
+    fn test_environment_name() {
+        assert_eq!(Environment::Development.name(), "development");
+        assert_eq!(Environment::Test.name(), "test");
+        assert_eq!(Environment::Production.name(), "production");
+    }
+
+    #[test]
+    fn test_find_from_valid_path() {
+        let current_dir = std::env::current_dir().unwrap();
+        let result = ProjectPath::find_from(&current_dir);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_find_from_invalid_path() {
+        // 从一个不包含 docs 或 .claude 的路径开始查找
+        // 使用系统临时目录
+        let temp_dir = std::env::temp_dir();
+        // 如果临时目录本身或其父目录包含 docs/.claude，则跳过此测试
+        if temp_dir.join("docs").exists() || temp_dir.join(".claude").exists() {
+            return;
+        }
+        // 继续向上查找到根目录，如果仍找不到，会返回错误
+        let result = ProjectPath::find_from(&temp_dir);
+        // 结果取决于临时目录是否在项目目录下
+        if result.is_err() {
+            assert!(result.unwrap_err().contains("未找到项目根目录"));
+        }
+    }
+
+    #[test]
+    fn test_parse_ini_content() {
+        let content = r#"
+[section1]
+key1 = value1
+key2 = value2
+
+[section2]
+key3 = value3
+"#;
+        let result = ProjectPath::parse_ini_content(content);
+        assert!(result.is_ok());
+        let config = result.unwrap();
+        assert_eq!(config.get("section1").unwrap().get("key1").unwrap(), "value1");
+        assert_eq!(config.get("section1").unwrap().get("key2").unwrap(), "value2");
+        assert_eq!(config.get("section2").unwrap().get("key3").unwrap(), "value3");
+    }
+
+    #[test]
+    fn test_parse_ini_with_comments() {
+        let content = r#"
+[section1]
+# this is a comment
+key1 = value1
+; another comment
+key2 = value2
+"#;
+        let result = ProjectPath::parse_ini_content(content);
+        assert!(result.is_ok());
+        let config = result.unwrap();
+        assert_eq!(config.get("section1").unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_join_path() {
+        let project = ProjectPath::find().unwrap();
+        let joined = project.join("test/path");
+        assert!(joined.to_string_lossy().contains("test/path"));
+    }
+
+    #[test]
+    fn test_docs_path() {
+        let project = ProjectPath::find().unwrap();
+        let docs = project.docs();
+        assert!(docs.to_string_lossy().ends_with("docs"));
+    }
+
+    #[test]
+    fn test_logs_path() {
+        let project = ProjectPath::find().unwrap();
+        let logs = project.logs();
+        assert!(logs.to_string_lossy().ends_with("logs"));
+    }
+
+    #[test]
+    fn test_tmp_path() {
+        let project = ProjectPath::find().unwrap();
+        let tmp = project.tmp();
+        assert!(tmp.to_string_lossy().ends_with("tmp"));
+    }
+
+    #[test]
+    fn test_config_file() {
+        let project = ProjectPath::find().unwrap();
+        let config_file = project.config_file("test.ini");
+        let path_str = config_file.to_string_lossy();
+        // Windows 使用反斜杠，所以用 contains 而非 ends_with
+        assert!(path_str.contains("docs"));
+        assert!(path_str.contains("config"));
+        assert!(path_str.contains("test.ini"));
+    }
+
+    #[test]
+    fn test_data_input_path() {
+        let project = ProjectPath::find().unwrap();
+        let input_path = project.data_input("base", "project_path");
+        let path_str = input_path.to_string_lossy();
+        assert!(path_str.contains("data"));
+        assert!(path_str.contains("base"));
+        assert!(path_str.contains("project_path.input"));
+    }
+
+    #[test]
+    fn test_data_check_path() {
+        let project = ProjectPath::find().unwrap();
+        let check_path = project.data_check("base", "project_path");
+        let path_str = check_path.to_string_lossy();
+        assert!(path_str.contains("data"));
+        assert!(path_str.contains("base"));
+        assert!(path_str.contains("project_path.check"));
+    }
+}

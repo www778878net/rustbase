@@ -142,15 +142,126 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_task_timer() {
-        let timer = TaskTimer::new("test_timer");
+    fn test_task_timer_new() {
+        let timer = TaskTimer::new("test_timer_new");
+        assert!(timer.time_path().to_string_lossy().contains("test_timer_new.time"));
+        // 清理
         let _ = std::fs::remove_file(timer.time_path());
-        
+    }
+
+    #[test]
+    fn test_task_timer_first_run() {
+        let timer = TaskTimer::new("test_timer_first");
+        let _ = std::fs::remove_file(timer.time_path());
+
+        // 首次执行，应该运行
         assert!(timer.should_run(3600));
-        
+
+        // 清理
+        let _ = std::fs::remove_file(timer.time_path());
+    }
+
+    #[test]
+    fn test_task_timer_mark_done() {
+        let timer = TaskTimer::new("test_timer_mark");
+        let _ = std::fs::remove_file(timer.time_path());
+
+        // 标记完成
+        let result = timer.mark_done();
+        assert!(result.is_ok());
+
+        // 检查文件创建
+        assert!(timer.time_path().exists());
+
+        // 清理
+        let _ = std::fs::remove_file(timer.time_path());
+    }
+
+    #[test]
+    fn test_task_timer_interval_check() {
+        let timer = TaskTimer::new("test_timer_interval");
+        let _ = std::fs::remove_file(timer.time_path());
+
+        // 首次执行
+        assert!(timer.should_run(3600));
+
+        // 标记完成
         timer.mark_done().unwrap();
+
+        // 刚完成，不应该运行
         assert!(!timer.should_run(3600));
-        
+
+        // 清理
+        let _ = std::fs::remove_file(timer.time_path());
+    }
+
+    #[test]
+    fn test_task_timer_get_last_time() {
+        let timer = TaskTimer::new("test_timer_last_time");
+        let _ = std::fs::remove_file(timer.time_path());
+
+        // 从未执行过
+        assert!(timer.get_last_time().is_none());
+
+        // 标记完成
+        timer.mark_done().unwrap();
+
+        // 有执行记录
+        let last_time = timer.get_last_time();
+        assert!(last_time.is_some());
+        assert!(last_time.unwrap() > 0);
+
+        // 清理
+        let _ = std::fs::remove_file(timer.time_path());
+    }
+
+    #[test]
+    fn test_task_timer_with_path() {
+        let timer = TaskTimer::with_path("tmp/test_custom_timer.time");
+
+        // 确保路径正确
+        let path = timer.time_path();
+        assert!(path.to_string_lossy().contains("tmp/test_custom_timer.time"));
+
+        // 清理
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_task_timer_zero_interval() {
+        let timer = TaskTimer::new("test_timer_zero");
+        let _ = std::fs::remove_file(timer.time_path());
+
+        // 标记完成
+        timer.mark_done().unwrap();
+
+        // 0秒间隔应该总是返回 true
+        assert!(timer.should_run(0));
+
+        // 清理
+        let _ = std::fs::remove_file(timer.time_path());
+    }
+
+    #[test]
+    fn test_task_timer_overwrite() {
+        let timer = TaskTimer::new("test_timer_overwrite");
+        let _ = std::fs::remove_file(timer.time_path());
+
+        // 第一次标记
+        timer.mark_done().unwrap();
+        let time1 = timer.get_last_time().unwrap();
+
+        // 等待一小段时间
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        // 第二次标记（覆盖）
+        timer.mark_done().unwrap();
+        let time2 = timer.get_last_time().unwrap();
+
+        // 时间应该更新
+        assert!(time2 >= time1);
+
+        // 清理
         let _ = std::fs::remove_file(timer.time_path());
     }
 }

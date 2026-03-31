@@ -117,20 +117,25 @@ logger.info("message")
 ## 测试方案
 
 ### 主要逻辑测试
-- **日志创建**: 输入 `get_logger("Test", "wf", "src/workflow", 3)`，预期实例创建成功，验证返回非空 Arc
-- **INFO 日志写入**: 输入 `logger.info("test")`，预期 project.log 包含该日志，验证 `grep "test" project.log`
-- **DETAIL 日志写入**: 输入 `logger.detail("test")`，预期仅 detail.log 包含，验证 `grep "DETAIL" detail.log`
-- **单例模式**: 输入两次相同 caller_name，预期返回同一实例，验证 `Arc::ptr_eq` 返回 true
 
+| 测试 | 输入 | 预期输出 | 验证方法 |
+|------|------|----------|----------|
+| mylogger 宏 | mylogger!() | 实例创建成功 | assert!(logger.info("test") 正常执行) |
+| 日志级别顺序 | LogLevel 比较 | Detail < Debug < Info < Warn < Error | assert!(Detail < Debug) |
+| 级别转换 | from_i32(5/10/20/30/40) | 正确的 LogLevel | assert_eq!(from_i32(5), Detail) |
+| 级别字符串 | as_str() | "DETAIL"/"DEBUG"/"INFO"/"WARN"/"ERROR" | assert_eq!(Detail.as_str(), "DETAIL") |
+| 环境检测 | from_str("development") | Environment::Development | assert_eq!(env, Development) |
+| 环境级别 | console_level()/file_level() | 正确级别 | Production=Info, Development=Debug |
+| 单例模式 | get_logger("name") 两次 | 同一实例 | Arc::ptr_eq 返回 true |
+| 环境切换 | set_environment() | 级别更新 | assert_eq!(logger.get_environment(), Development) |
+| 错误格式化 | format_error(&error) | 包含异常信息 | assert!(formatted.contains("Exception")) |
 
-### 边界测试
-- **空 wfname**: 输入 `get_logger("Test", "", "src/service", 3)`，预期日志写入 `src/service/Test.log`
-- **超长消息**: 输入 `logger.info("x"*10000)`，预期正常写入不截断
-- **中文消息**: 输入 `logger.info("中文测试")`，预期正确显示 UTF-8
+### 其它测试（边界、异常等）
 
-### 异常测试
-- **无写权限**: 场景 `/root/logs` 目录，预期打印错误但不崩溃
-- **磁盘满**: 场景磁盘空间不足，预期写入失败但不崩溃
+| 测试 | 输入 | 预期输出 | 验证方法 |
+|------|------|----------|----------|
+| 无效级别值 | from_i32(99) | 返回默认 Info | assert_eq!(from_i32(99), Info) |
+| 错误链格式 | format_error() 包含 source | 完整错误链 | assert!(formatted.contains("Caused by")) |
 
 ## 知识库
 

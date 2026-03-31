@@ -44,15 +44,30 @@
 
 ## 测试方案
 
-### 基础功能测试
-- [ ] 创建 UpInfo 正确
-- [ ] Guest 账号正确
-- [ ] ID 生成正确
+### 主要逻辑测试
 
-### 数据操作测试
-- [ ] 设置 jsdata 正确
-- [ ] 获取数据正确
-- [ ] 列检查正确
+| 测试 | 输入 | 预期输出 | 验证方法 |
+|------|------|----------|----------|
+| 创建 UpInfo | new() | 默认值正确 | getstart=0, getnumber=15 |
+| Guest 账号 | get_guest() | sid 包含 GUEST | assert!(sid.contains("GUEST")) |
+| 默认账号 | default_upinfo() | cid=default | assert_eq!(cid, "default") |
+| ID 生成 | new_id() | UUID格式 | len==36, 唯一 |
+| 时间戳ID | new_id_ts() | 时间戳格式 | len>10 |
+| 设置 API | with_api() | 路径正确 | apisys/apimicro/apiobj |
+| 设置 jsdata | with_jsdata() | jsdata 有值 | get_raw_data() 返回值 |
+
+### 其它测试（边界、异常等）
+
+| 测试 | 输入 | 预期输出 | 验证方法 |
+|------|------|----------|----------|
+| 获取数据无数据 | get_data() | Err(NoData) | assert!(matches!(result, Err(NoData))) |
+| 获取数据JSON | get_data() | Ok(T) | JSON 解析成功 |
+| 列检查全部 | check_cols() | checkcolsallok | cols=["all"] |
+| 列检查特定 | check_cols() | checkcolsallok | cols 在允许列表 |
+| 列检查无效 | check_cols() | 返回无效列名 | 返回无效列 |
+| 排序检查 | in_order() | bool | 排序字段是否有效 |
+| 响应成功 | Response::success_json() | res=0 | 有 back 数据 |
+| 响应失败 | Response::fail() | res<0 | 有 errmsg |
 
 ## 知识库
 

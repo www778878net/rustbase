@@ -51,6 +51,18 @@ let config = project.load_ini_config();
 | 查找根目录 | find() | Ok(ProjectPath) | root 包含 docs 或 .claude |
 | 本地数据库路径 | local_db() | docs/config/local.db | 路径结尾正确 |
 | 配置目录 | docs_config() | docs/config | 路径结尾正确 |
+| 环境检测 | environment() | Environment | 根据APP_ENV返回正确环境 |
+| INI配置解析 | parse_ini_content() | HashMap | 正确解析section和key-value |
+| 从指定路径查找 | find_from(path) | Ok(ProjectPath) | 从指定路径向上查找 |
+
+### 其它测试（边界、异常等）
+
+| 测试 | 输入 | 预期输出 | 验证方法 |
+|------|------|----------|----------|
+| 不存在的路径查找 | find_from(无效路径) | Err | 返回错误信息 |
+| 环境变量覆盖 | read_text_config() | 环境变量值 | 环境变量优先于文件 |
+| Worker名称获取 | worker_name() | Optional<String> | 环境变量或文件读取 |
+| 路径拼接 | join("relative") | 拼接后路径 | 路径正确拼接 |
 
 ---
 
