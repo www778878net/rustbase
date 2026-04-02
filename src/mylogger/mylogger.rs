@@ -5,6 +5,7 @@
 //! - 工作流日志：logs/{wfname}/{wfname}.log 或 logs/{myname}/{myname}.log
 
 use std::ffi::{CStr, CString};
+use std::io::{Seek, SeekFrom};
 use std::os::raw::c_char;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock, Mutex};
@@ -165,6 +166,8 @@ impl GlobalLogger {
     fn write_detail(&self, message: &str) {
         let _guard = self.write_lock.lock().ok();
         if let Ok(mut file) = self.detail_file.lock() {
+            // NOTE: 单进程多线程安全（有 Mutex 保护），但多进程会有冲突
+            let _ = file.seek(SeekFrom::End(0));
             let _ = file.write_all(message.as_bytes());
         }
     }
