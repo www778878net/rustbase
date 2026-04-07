@@ -106,8 +106,8 @@ impl Environment {
 
 struct GlobalLogger {
     project_root: PathBuf,
-    project_file: Arc<Mutex<File>>,
-    detail_file: Arc<Mutex<File>>,
+    project_file: Arc<Mutex<Option<File>>>,
+    detail_file: Arc<Mutex<Option<File>>>,
     write_lock: Arc<Mutex<()>>,
 }
 
@@ -132,18 +132,32 @@ impl GlobalLogger {
             fs::copy(&detail_path, &backup_path).ok();
         }
 
-        let project_file = OpenOptions::new()
+        // 尝试打开项目日志文件
+        let project_file = match OpenOptions::new()
             .create(true)
             .append(true)
             .open(&project_path)
-            .expect("Cannot open project.log");
+        {
+            Ok(file) => Some(file),
+            Err(e) => {
+                eprintln!("警告: 无法打开 project.log: {}. 将只使用控制台日志.", e);
+                None
+            }
+        };
 
-        let detail_file = OpenOptions::new()
+        // 尝试打开详细日志文件
+        let detail_file = match OpenOptions::new()
             .create(true)
             .write(true)
             .truncate(true)
             .open(&detail_path)
-            .expect("Cannot open detail.log");
+        {
+            Ok(file) => Some(file),
+            Err(e) => {
+                eprintln!("警告: 无法打开 detail.log: {}. 将只使用控制台日志.", e);
+                None
+            }
+        };
 
         Self {
             project_root: project_root.to_path_buf(),
@@ -158,17 +172,21 @@ impl GlobalLogger {
             return;
         }
         let _guard = self.write_lock.lock().ok();
-        if let Ok(mut file) = self.project_file.lock() {
-            let _ = file.write_all(message.as_bytes());
+        if let Ok(mut file_opt) = self.project_file.lock() {
+            if let Some(ref mut file) = *file_opt {
+                let _ = file.write_all(message.as_bytes());
+            }
         }
     }
 
     fn write_detail(&self, message: &str) {
         let _guard = self.write_lock.lock().ok();
-        if let Ok(mut file) = self.detail_file.lock() {
-            // NOTE: 单进程多线程安全（有 Mutex 保护），但多进程会有冲突
-            let _ = file.seek(SeekFrom::End(0));
-            let _ = file.write_all(message.as_bytes());
+        if let Ok(mut file_opt) = self.detail_file.lock() {
+            if let Some(ref mut file) = *file_opt {
+                // NOTE: 单进程多线程安全（有 Mutex 保护），但多进程会有冲突
+                let _ = file.seek(SeekFrom::End(0));
+                let _ = file.write_all(message.as_bytes());
+            }
         }
     }
 
@@ -235,7 +253,7 @@ pub struct MyLogger {
     caller_name: String,
     pub wfname: String,
     environment: Environment,
-    workflow_file: Arc<Mutex<File>>,
+    workflow_file: Arc<Mutex<Option<File>>>,
     console_level: LogLevel,
     file_level: LogLevel,
     write_lock: Arc<Mutex<()>>,
@@ -266,11 +284,18 @@ impl MyLogger {
             fs::rename(&workflow_log_path, &archive_path).ok();
         }
 
-        let workflow_file = OpenOptions::new()
+        // 尝试打开工作流日志文件
+        let workflow_file = match OpenOptions::new()
             .create(true)
             .append(true)
             .open(&workflow_log_path)
-            .expect("Cannot open workflow log");
+        {
+            Ok(file) => Some(file),
+            Err(e) => {
+                eprintln!("警告: 无法打开工作流日志文件 {}: {}. 将只使用控制台日志.", workflow_log_path.display(), e);
+                None
+            }
+        };
 
         let env_str = std::env::var("APP_ENV").unwrap_or_else(|_| "production".to_string());
         let environment: Environment = env_str.parse().unwrap_or(Environment::Production);
@@ -307,8 +332,10 @@ impl MyLogger {
 
         if level >= self.file_level {
             let _guard = self.write_lock.lock().ok();
-            if let Ok(mut file) = self.workflow_file.lock() {
-                let _ = file.write_all(log_line.as_bytes());
+            if let Ok(mut file_opt) = self.workflow_file.lock() {
+                if let Some(ref mut file) = *file_opt {
+                    let _ = file.write_all(log_line.as_bytes());
+                }
             }
         }
 
