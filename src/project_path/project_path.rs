@@ -175,10 +175,21 @@ impl ProjectPath {
     }
 
     /// 从指定路径加载 INI 配置文件
+    /// 自动加载 docs/config/.env 文件（如果存在）
     pub fn load_ini_from_path(config_path: &Path) -> Result<HashMap<String, HashMap<String, String>>, String> {
         if !config_path.exists() {
             return Err(format!("配置文件不存在: {}", config_path.to_string_lossy()));
         }
+
+        // 自动加载 .env 文件（仅在首次调用时）
+        static DOTENV_LOADED: std::sync::Once = std::sync::Once::new();
+        DOTENV_LOADED.call_once(|| {
+            // .env 与 ini 文件同目录：docs/config/.env
+            if let Some(config_dir) = config_path.parent() {
+                let env_path = config_dir.join(".env");
+                Self::load_dotenv(&env_path);
+            }
+        });
 
         let content = fs::read_to_string(config_path)
             .map_err(|e| format!("读取配置文件失败: {}", e))?;
@@ -187,6 +198,7 @@ impl ProjectPath {
     }
 
     /// 从字符串解析 INI 内容
+    /// 支持 ${ENV_VAR} 占位符，运行时替换为环境变量值
     pub fn parse_ini_content(content: &str) -> Result<HashMap<String, HashMap<String, String>>, String> {
         let mut config: HashMap<String, HashMap<String, String>> = HashMap::new();
         let mut current_section = "default".to_string();
@@ -209,14 +221,60 @@ impl ProjectPath {
             if let Some(pos) = line.find('=') {
                 let key = line[..pos].trim().replace('\r', "").to_string();
                 let value = line[pos + 1..].trim().replace('\r', "").to_string();
+                // 替换 ${ENV_VAR} 占位符为环境变量值
+                let resolved = Self::resolve_env_vars(&value);
                 config
                     .entry(current_section.clone())
                     .or_insert_with(HashMap::new)
-                    .insert(key, value);
+                    .insert(key, resolved);
             }
         }
 
         Ok(config)
+    }
+
+    /// 替换字符串中的 ${ENV_VAR} 占位符为环境变量值
+    /// 未设置的环境变量替换为空字符串
+    fn resolve_env_vars(value: &str) -> String {
+        let mut result = value.to_string();
+        loop {
+            if let Some(start) = result.find("${") {
+                if let Some(end) = result[start + 2..].find('}') {
+                    let env_key = &result[start + 2..start + 2 + end];
+                    let env_val = std::env::var(env_key).unwrap_or_default();
+                    result = format!("{}{}{}", &result[..start], env_val, &result[start + 2 + end + 1..]);
+                } else {
+                    break; // 没有闭合的 }，不替换
+                }
+            } else {
+                break; // 没有更多占位符
+            }
+        }
+        result
+    }
+
+    /// 加载 .env 文件，解析并注入环境变量
+    /// 仅在环境变量未设置时才注入（不覆盖已有值）
+    fn load_dotenv(env_path: &Path) {
+        if !env_path.exists() {
+            return;
+        }
+        if let Ok(content) = fs::read_to_string(env_path) {
+            for line in content.lines() {
+                let line = line.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
+                if let Some(pos) = line.find('=') {
+                    let key = line[..pos].trim().to_string();
+                    let value = line[pos + 1..].trim().to_string();
+                    // 仅在环境变量未设置时才注入
+                    if std::env::var(&key).is_err() {
+                        std::env::set_var(&key, &value);
+                    }
+                }
+            }
+        }
     }
 
     /// 从 INI 配置文件读取值
