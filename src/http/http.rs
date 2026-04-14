@@ -152,7 +152,7 @@ impl HttpHelper {
                     status_code,
                     response: response_content,
                     kind,
-                    cookies: None,
+                    cookies: Some(cookies),
                 }),
             });
         }
