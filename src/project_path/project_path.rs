@@ -151,6 +151,7 @@ impl ProjectPath {
 
     /// 获取 Worker 名称
     /// 从 tmp/lockid/worker.txt 读取，每个终端不同
+    /// 如果不存在则自动生成（使用UUID）
     pub fn worker_name(&self) -> Option<String> {
         if let Ok(val) = std::env::var("WORKER_NAME") {
             return Some(val);
@@ -165,7 +166,22 @@ impl ProjectPath {
                 }
             }
         }
-        None
+        
+        // 自动生成worker标识（使用UUID）
+        let worker_id = format!("worker_{}", uuid::Uuid::new_v4());
+        
+        // 确保目录存在
+        if let Some(parent) = worker_path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+        
+        // 写入文件
+        if fs::write(&worker_path, &worker_id).is_ok() {
+            return Some(worker_id);
+        }
+        
+        // 写入失败，返回生成的ID（但不保存）
+        Some(worker_id)
     }
 
     /// 加载 INI 配置文件（默认路径）
