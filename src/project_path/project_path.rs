@@ -249,21 +249,29 @@ impl ProjectPath {
         Ok(config)
     }
 
-    /// 替换字符串中的 ${ENV_VAR} 占位符为环境变量值
-    /// 未设置的环境变量替换为空字符串
     fn resolve_env_vars(value: &str) -> String {
         let mut result = value.to_string();
         loop {
             if let Some(start) = result.find("${") {
                 if let Some(end) = result[start + 2..].find('}') {
-                    let env_key = &result[start + 2..start + 2 + end];
+                    let placeholder = &result[start + 2..start + 2 + end];
+                    let (env_key, default_val) = if let Some(dsep) = placeholder.find(":-") {
+                        (&placeholder[..dsep], Some(&placeholder[dsep + 2..]))
+                    } else {
+                        (placeholder, None)
+                    };
                     let env_val = std::env::var(env_key).unwrap_or_default();
-                    result = format!("{}{}{}", &result[..start], env_val, &result[start + 2 + end + 1..]);
+                    let replace_val = if env_val.is_empty() {
+                        default_val.unwrap_or("")
+                    } else {
+                        &env_val
+                    };
+                    result = format!("{}{}{}", &result[..start], replace_val, &result[start + 2 + end + 1..]);
                 } else {
-                    break; // 没有闭合的 }，不替换
+                    break;
                 }
             } else {
-                break; // 没有更多占位符
+                break;
             }
         }
         result
