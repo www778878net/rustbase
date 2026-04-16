@@ -303,9 +303,15 @@ impl ProjectPath {
 
     /// 从 INI 配置文件读取值
     pub fn read_ini_value(&self, section: &str, key: &str) -> Option<String> {
-        let env_key = key.to_uppercase();
+        let env_key = match key.to_lowercase().as_str() {
+            "uid" => "USER_UID".to_string(),
+            "uname" | "username" => "USER_NAME".to_string(),
+            _ => key.to_uppercase(),
+        };
         if let Ok(val) = std::env::var(&env_key) {
-            return Some(val);
+            if !val.is_empty() {
+                return Some(val);
+            }
         }
 
         self.load_ini_config()
