@@ -40,6 +40,8 @@ pub struct UpInfo {
     pub bytedata: Option<Vec<u8>>,
     /// 列选择
     pub cols: Vec<String>,
+    /// 参数数组 (与 cols 配合使用)
+    pub pars: Vec<serde_json::Value>,
 
     // ============ 调试监控用 ============
     /// 调试模式
@@ -141,6 +143,7 @@ impl UpInfo {
             jsdata: None,
             bytedata: None,
             cols: vec!["all".to_string()],
+            pars: vec![],
 
             debug: false,
             pcid: String::new(),
@@ -260,6 +263,59 @@ impl UpInfo {
         }
     }
 
+    /// 解析带前缀的数据
+    /// 前8位类型标记: "00000000" = bytedata(protobuf), "00000001" = jsdata(json)
+    /// 返回解析后的 JSON Value
+    pub fn parse_prefixed_data(&self) -> Result<serde_json::Value, UpInfoError> {
+        if let Some(ref data) = self.jsdata {
+            if data.len() < 8 {
+                return Err(UpInfoError::FormatError("数据长度不足8位".to_string()));
+            }
+            
+            let prefix = &data[..8];
+            let content = &data[8..];
+            
+            let first_char = prefix.chars().next().unwrap_or(' ');
+            match first_char {
+                '0' => {
+                    Err(UpInfoError::FormatError("bytedata格式请使用bytedata字段".to_string()))
+                }
+                '1' => {
+                    serde_json::from_str(content).map_err(UpInfoError::JsonError)
+                }
+                _ => {
+                    serde_json::from_str(data).map_err(UpInfoError::JsonError)
+                }
+            }
+        } else if let Some(ref bytes) = self.bytedata {
+            if bytes.len() < 8 {
+                return Err(UpInfoError::FormatError("数据长度不足8字节".to_string()));
+            }
+            
+            let first_byte = bytes[0];
+            let content = &bytes[8..];
+            
+            match first_byte {
+                0 => {
+                    let json: String = serde_json::from_slice(content)
+                        .map_err(|e| UpInfoError::ByteError(e.to_string()))?;
+                    serde_json::from_str(&json).map_err(UpInfoError::JsonError)
+                }
+                1 => {
+                    let json_str = String::from_utf8_lossy(content);
+                    serde_json::from_str(&json_str).map_err(UpInfoError::JsonError)
+                }
+                _ => {
+                    let json: String = serde_json::from_slice(bytes)
+                        .map_err(|e| UpInfoError::ByteError(e.to_string()))?;
+                    serde_json::from_str(&json).map_err(UpInfoError::JsonError)
+                }
+            }
+        } else {
+            Err(UpInfoError::NoData)
+        }
+    }
+
     /// 获取原始 JSON 字符串
     pub fn get_raw_data(&self) -> Option<&str> {
         self.jsdata.as_deref()
@@ -354,6 +410,7 @@ pub enum UpInfoError {
     NoData,
     JsonError(serde_json::Error),
     ByteError(String),
+    FormatError(String),
 }
 
 impl std::fmt::Display for UpInfoError {
@@ -362,6 +419,7 @@ impl std::fmt::Display for UpInfoError {
             UpInfoError::NoData => write!(f, "无业务数据"),
             UpInfoError::JsonError(e) => write!(f, "JSON 解析失败: {}", e),
             UpInfoError::ByteError(e) => write!(f, "字节数据解析失败: {}", e),
+            UpInfoError::FormatError(e) => write!(f, "格式错误: {}", e),
         }
     }
 }
