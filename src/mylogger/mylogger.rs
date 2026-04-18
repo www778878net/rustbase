@@ -86,7 +86,7 @@ impl Environment {
     pub fn console_level(&self) -> LogLevel {
         match self {
             Environment::Production => LogLevel::Info,
-            Environment::Development => LogLevel::Debug,
+            Environment::Development => LogLevel::Detail,
             Environment::Test => LogLevel::Debug,
         }
     }
@@ -653,7 +653,7 @@ mod tests {
         assert_eq!(prod.file_level(), LogLevel::Info);
 
         let dev = Environment::Development;
-        assert_eq!(dev.console_level(), LogLevel::Debug);
+        assert_eq!(dev.console_level(), LogLevel::Detail);
         assert_eq!(dev.file_level(), LogLevel::Detail);
     }
 
