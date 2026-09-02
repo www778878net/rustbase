@@ -1,0 +1,21 @@
+[package]
+name = "base"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "base"
+crate-type = ["rlib"]
+
+[dependencies]
+chrono = "0.4"
+parking_lot = "0.12"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+uuid = { version = "1.0", features = ["v4", "js"] }
+base64 = "0.22"
+regex = "1.10"
+# SSE 流式承载（svccn 通用能力）：Controller 把事件流 receiver 存进 UpInfo.sse_rx，
+# 框架层据此返回 Sse<ReceiverStream>。仅用 sync channel 类型，不引入 runtime。
+tokio = { version = "1", features = ["sync"] }
